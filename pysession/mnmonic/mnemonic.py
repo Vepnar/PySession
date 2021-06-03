@@ -1,4 +1,5 @@
 import os
+import zlib
 import json
 
 SEEDSIZE = 16
@@ -16,16 +17,8 @@ class KeyPair:
         try:
             # Attempt reading the file
             with open(mnemonic_path, "r") as mnemonic_file:
-                mnemonic_data = mnemonic_file.read()
-
-            # Read the json file
-            self.wordset = json.loads(mnemonic_data)
-
-            # Verify if all required keys are in the language file
-            if not all(key in self.wordset for key in ("prefix-length", "words")):
-                raise MnemonicError("Invalid language file")
-
-            self._verify_memonic()
+                # Read the json file
+                self.language_set = json.load(mnemonic_file)
 
         # Handle general parsing exceptions
         except FileNotFoundError as e:
@@ -33,69 +26,107 @@ class KeyPair:
         except json.decoder.JSONDecodeError as e:
             raise MnemonicError("Language file could not be decoded") from e
 
+        # Verify if all required keys are in the language file
+        if not all(key in self.language_set for key in ("prefix-length", "words")):
+            raise MnemonicError("Invalid language file")
+
+        self.prefix_length = self.language_set["prefix-length"]
+        self.wordset = self.language_set["words"]
+
+        # Verify mnomic
+        self._verify_memonic()
+        self._extract_checksum()
+        self._decode_memonic()
+
+    def _extract_checksum(self):
+
+        # There is only a checksum word when the prefix is longer than 0
+        if self.prefix_length > 0:
+            self.checksum = self.words.pop()
+
+    def _get_checksum_index(self, wordlist):
+        trimmed = ""
+        for word in wordlist:
+            trimmed += word[: self.prefix_length]
+
+        checksum = zlib.crc32(bytes(trimmed, "ascii"))
+
+        return checksum % len(wordlist)
+
     def _decode_memonic(self):
         # TODO: check if this works for other languages
         # Prefix length isn't even doing anything
 
         word_count = len(self.words)
-        prefix_length = self.wordset["prefix-length"]
-        wordset = self.wordset["words"]
-        wordset_length = len(wordset)
-        checksum = ""
-        output =""
-
-        # Not a pure function
-        if prefix_length > 0:
-            self.checksum = self.words.pop()
+        wordset_length = len(self.wordset)
+        output = ""
 
         for i in range(0, word_count, 3):
-            word1 = wordset.index(self.words[i])
-            word2 = wordset.index(self.words[i + 1])
-            word3 = wordset.index(self.words[i + 2])
+            word1 = self.wordset.index(self.words[i])
+            word2 = self.wordset.index(self.words[i + 1])
+            word3 = self.wordset.index(self.words[i + 2])
 
-            x = (
+            segment = (
                 word1
-                + word_count * ((word_count - word1 + word2) % word_count)
-                + word_count
-                * word_count
-                * word_count
-                * ((word_count - word2 + word3) % word_count)
+                + wordset_length * ((wordset_length - word1 + word2) % wordset_length)
+                + wordset_length
+                * wordset_length
+                * wordset_length
+                * ((wordset_length - word2 + word3) % wordset_length)
             )
 
             # This error will occour when you use abbey 13 times in your mnemonic
-            if x % word_count != word1:
-                raise MnemonicError("Something went wrong when decoding your private key, please try again")
-            
-            # TODO swap endian 4byte
+            if segment % wordset_length != word1:
+                raise MnemonicError(
+                    "Something went wrong when decoding your private key, please try again"
+                )
 
-    def _swap_endian_4byte(self, string):
-        if len(string) != 8:
-            raise MnemonicError(f"Invalid input length {len(string)}")
+            # Convert number to hex with a constant length
+            segment_hex = ("0" * 8 + hex(segment)[2:])[:-8]
 
-        return string[6:2] + string[4:2] + string[2:4] + string [0:2]
+            # Swap endian 4 bytes
+            segment_hex = (
+                segment_hex[6:2]
+                + segment_hex[4:2]
+                + segment_hex[2:4]
+                + segment_hex[0:2]
+            )
+
+            # Append swapped bytes to the output
+            output += segment_hex
+
+        if self.prefix_length > 0:
+            index = self._get_checksum_index(self.words)
+            expected_word = self.words[index]
+            if expected_word != self.checksum:
+                raise MnemonicError(
+                    "Your private key could not be verified, please verify the checksum word"
+                )
+
+        return output
 
     def _verify_memonic(self):
         # TODO finish
         # TODO: check if this works for other languages
         word_count = len(self.words)
-        prefix_length = self.wordset["prefix-length"]
         if word_count < 12:
             raise MnemonicError("Mnemonic seed is too short")
-        elif (prefix_length == 0 and word_count % 3 != 0 or prefix_length > 0) and (
-            prefix_length > 0 and word_count % 3 == 2
+        elif (self.prefix_length == 0 and word_count % self.prefix_length != 0) or (
+            self.prefix_length > 0 and word_count % self.prefix_length > 1
         ):
+            print(word_count % self.prefix_length, word_count)
             raise MnemonicError("Mnemonic seed is too short")
-        elif prefix_length > 0 and word_count % 3 == 0:
+        elif self.prefix_length > 0 and word_count % self.prefix_length == 0:
             raise MnemonicError("Last word in Menmonic seed is missing")
 
         # Check if all the words of the seed are in the wordset
         for i in range(word_count):
-            if not self.words[i] in self.wordset["words"]:
+            if not self.words[i] in self.wordset:
                 raise MnemonicError(f"Invalid word `{self.words[i]}` in mnemonic")
 
     @classmethod
     def from_words(cls, words, **kwargs):
-        return KeyPair(words)
+        return KeyPair(words.split(" "))
 
     @classmethod
     def from_file(path: str = "mnemonic.json", **kwargs):
