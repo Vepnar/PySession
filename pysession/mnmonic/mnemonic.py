@@ -9,6 +9,12 @@ class MnemonicError(FileNotFoundError):
     pass
 
 
+def _swap_endian_bytes(hex_string):
+    if len(str) != 8:
+        raise MnemonicError('!?')
+    return hex_string[6:2]+ hex_string[4:2]+ hex_string[2:4] + hex_string[0:2]
+
+
 class KeyPair:
     def __init__(self, words: list, version: int = 3, language: str = "english"):
         self.words = words
@@ -85,15 +91,8 @@ class KeyPair:
             segment_hex = ("0" * 8 + hex(segment)[2:])[:-8]
 
             # Swap endian 4 bytes
-            segment_hex = (
-                segment_hex[6:2]
-                + segment_hex[4:2]
-                + segment_hex[2:4]
-                + segment_hex[0:2]
-            )
-
             # Append swapped bytes to the output
-            output += segment_hex
+            output += _swap_endian_bytes(segment_hex)
 
         if self.prefix_length > 0:
             index = self._get_checksum_index(self.words)
@@ -103,11 +102,19 @@ class KeyPair:
                     "Your private key could not be verified, please verify the checksum word"
                 )
 
+        self._seed32 = output
         return output
 
+    def _encode_memonic(self, seed):
+        output = []
+        word_count = len(self.words)
+        wordset_length = len(self.wordset)
+        seed_length = len(seed) # probably 32
+
+        for i in range(0, seed_length, 8):
+            seed = seed[:i] + _swap_endian_bytes(seed[i:8]) + seed[i+8:]
+
     def _verify_memonic(self):
-        # TODO finish
-        # TODO: check if this works for other languages
         word_count = len(self.words)
         if word_count < 12:
             raise MnemonicError("Mnemonic seed is too short")
