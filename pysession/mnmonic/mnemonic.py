@@ -1,6 +1,7 @@
 import os
 import zlib
 import json
+import math
 
 SEEDSIZE = 16
 
@@ -11,8 +12,8 @@ class MnemonicError(FileNotFoundError):
 
 def swap_endian_bytes(hex_string):
     if len(hex_string) != 8:
-        raise MnemonicError('Invalid input length')
-    return hex_string[6:2]+ hex_string[4:2]+ hex_string[2:4] + hex_string[0:2]
+        raise MnemonicError("Invalid input length")
+    return hex_string[6:8] + hex_string[4:6] + hex_string[2:4] + hex_string[0:2]
 
 
 class KeyPair:
@@ -37,10 +38,11 @@ class KeyPair:
 
         self.prefix_length = self.language_set["prefix-length"]
         self.wordset = self.language_set["words"]
+        self.version = version
+        self.language = language
 
     def load_words(self, words):
         self.words = words
-
         # Self explainatory
         self._verify_memonic()
         self._extract_checksum()
@@ -79,10 +81,8 @@ class KeyPair:
                 + wordset_length * ((wordset_length - word1 + word2) % wordset_length)
                 + wordset_length
                 * wordset_length
-                * wordset_length
                 * ((wordset_length - word2 + word3) % wordset_length)
             )
-
             # This error will occour when you use abbey 13 times in your mnemonic
             if segment % wordset_length != word1:
                 raise MnemonicError(
@@ -107,14 +107,30 @@ class KeyPair:
         self._seed32 = output
         return output
 
-    def _encode_memonic(self, seed):
+    def _encode_memonic(self):
         output = []
-        word_count = len(self.words)
         wordset_length = len(self.wordset)
-        seed_length = len(seed) # probably 32
+        seed = self._seed32
+        seed_length = len(self._seed32)  # probably 32
 
         for i in range(0, seed_length, 8):
-            seed = seed[:i] + swap_endian_bytes(seed[i:8]) + seed[i+8:]
+            seed = seed[:i] + swap_endian_bytes(seed[i : i + 8]) + seed[i + 8 :]
+
+        for i in range(0, seed_length, 8):
+            section = int(seed[i : i + 8], 16)
+            word1 = section % wordset_length
+            word2 = (math.floor(section / wordset_length) + word1) % wordset_length
+            word3 = (
+                math.floor(math.floor(section / wordset_length) / wordset_length)
+                + word2
+            ) % wordset_length
+
+            output += [self.wordset[word1], self.wordset[word2], self.wordset[word3]]
+
+        if self.prefix_length > 0:
+            output.append(output[self._get_checksum_index(output)])
+
+        self.words = output
 
     def _verify_memonic(self):
         word_count = len(self.words)
