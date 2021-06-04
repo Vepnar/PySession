@@ -9,9 +9,9 @@ class MnemonicError(FileNotFoundError):
     pass
 
 
-def _swap_endian_bytes(hex_string):
+def swap_endian_bytes(hex_string):
     if len(hex_string) != 8:
-        raise MnemonicError('!?')
+        raise MnemonicError('Invalid input length')
     return hex_string[6:2]+ hex_string[4:2]+ hex_string[2:4] + hex_string[0:2]
 
 
@@ -94,7 +94,7 @@ class KeyPair:
 
             # Swap endian 4 bytes
             # Append swapped bytes to the output
-            output += _swap_endian_bytes(segment_hex)
+            output += swap_endian_bytes(segment_hex)
 
         if self.prefix_length > 0:
             index = self._get_checksum_index(self.words)
@@ -114,7 +114,7 @@ class KeyPair:
         seed_length = len(seed) # probably 32
 
         for i in range(0, seed_length, 8):
-            seed = seed[:i] + _swap_endian_bytes(seed[i:8]) + seed[i+8:]
+            seed = seed[:i] + swap_endian_bytes(seed[i:8]) + seed[i+8:]
 
     def _verify_memonic(self):
         word_count = len(self.words)
