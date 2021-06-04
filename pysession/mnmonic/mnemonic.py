@@ -10,14 +10,13 @@ class MnemonicError(FileNotFoundError):
 
 
 def _swap_endian_bytes(hex_string):
-    if len(str) != 8:
+    if len(hex_string) != 8:
         raise MnemonicError('!?')
     return hex_string[6:2]+ hex_string[4:2]+ hex_string[2:4] + hex_string[0:2]
 
 
 class KeyPair:
-    def __init__(self, words: list, version: int = 3, language: str = "english"):
-        self.words = words
+    def __init__(self, version: int = 3, language: str = "english"):
         current = os.path.dirname(os.path.abspath(__file__))
         mnemonic_path = os.path.join(current, "languages", f"{language}.json")
         try:
@@ -39,7 +38,10 @@ class KeyPair:
         self.prefix_length = self.language_set["prefix-length"]
         self.wordset = self.language_set["words"]
 
-        # Verify mnomic
+    def load_words(self, words):
+        self.words = words
+
+        # Self explainatory
         self._verify_memonic()
         self._extract_checksum()
         self._decode_memonic()
@@ -88,7 +90,7 @@ class KeyPair:
                 )
 
             # Convert number to hex with a constant length
-            segment_hex = ("0" * 8 + hex(segment)[2:])[:-8]
+            segment_hex = ("0" * 8 + hex(segment)[2:])[-8:]
 
             # Swap endian 4 bytes
             # Append swapped bytes to the output
@@ -133,7 +135,9 @@ class KeyPair:
 
     @classmethod
     def from_words(cls, words, **kwargs):
-        return KeyPair(words.split(" "))
+        pair = KeyPair(**kwargs)
+        pair.load_words(words.split(" "))
+        return pair
 
     @classmethod
     def from_file(path: str = "mnemonic.json", **kwargs):
