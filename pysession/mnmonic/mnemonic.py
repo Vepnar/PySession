@@ -159,11 +159,11 @@ class KeyPair:
         return pair
 
     @classmethod
-    def from_file(path: str = "mnemonic.json", **kwargs):
+    def from_file(cls, path: str = "mnemonic.json", **kwargs):
         pass
 
     @classmethod
-    def from_env(prefix: str = "", **kwargs):
+    def from_env(cls, prefix: str = "", **kwargs):
         pass
 
     @classmethod
