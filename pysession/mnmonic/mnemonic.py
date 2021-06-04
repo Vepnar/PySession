@@ -48,6 +48,9 @@ class KeyPair:
         self._extract_checksum()
         self._decode_memonic()
 
+    def get_mnemonic(self):
+        return " ".join(self.words)
+
     def _extract_checksum(self):
 
         # There is only a checksum word when the prefix is longer than 0
@@ -164,5 +167,8 @@ class KeyPair:
         pass
 
     @classmethod
-    def new_keys(language: str = "english"):
-        pass
+    def new_keys(cls, **kwargs):
+        pair = KeyPair(**kwargs)
+        pair._seed32 = os.urandom(SEEDSIZE).hex()
+        pair._encode_memonic()
+        return pair
