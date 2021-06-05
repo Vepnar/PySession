@@ -44,9 +44,9 @@ class KeyPair:
     def load_words(self, words):
         self.words = words
         # Self explainatory
-        self._verify_memonic()
+        self._verify_mnemonic()
         self._extract_checksum()
-        self._decode_memonic()
+        self._decode_mnemonic()
 
     def get_mnemonic(self):
         return " ".join(self.words)
@@ -66,7 +66,7 @@ class KeyPair:
 
         return checksum % len(wordlist)
 
-    def _decode_memonic(self):
+    def _decode_mnemonic(self):
         # TODO: check if this works for other languages
         # Prefix length isn't even doing anything
 
@@ -110,7 +110,7 @@ class KeyPair:
         self._seed32 = output
         return output
 
-    def _encode_memonic(self):
+    def _encode_mnemonic(self):
         output = []
         wordset_length = len(self.wordset)
         seed = self._seed32
@@ -135,7 +135,7 @@ class KeyPair:
 
         self.words = output
 
-    def _verify_memonic(self):
+    def _verify_mnemonic(self):
         word_count = len(self.words)
         if word_count < 12:
             raise MnemonicError("Mnemonic seed is too short")
@@ -170,5 +170,5 @@ class KeyPair:
     def new_keys(cls, **kwargs):
         pair = KeyPair(**kwargs)
         pair._seed32 = os.urandom(SEEDSIZE).hex()
-        pair._encode_memonic()
+        pair._encode_mnemonic()
         return pair
