@@ -48,6 +48,7 @@ class KeyPair:
         self._verify_mnemonic()
         self._extract_checksum()
         self._decode_mnemonic()
+        self._generate_keys()
 
     def get_mnemonic(self):
         return " ".join(self.words)
@@ -56,9 +57,9 @@ class KeyPair:
         return self._pub.hex()
 
     def _generate_v3_keys(self):
-        
+
         # Extract the seed from the 32hex seed string
-        seed64 = bytes.fromhex(('0' * 32 + self._seed32)[:64])
+        seed64 = bytes.fromhex(("0" * 32 + self._seed32)[:64])
 
         # Create the public & private key
         ed25519_keypair = nacl.signing.SigningKey(seed64)
@@ -67,12 +68,24 @@ class KeyPair:
         # Convert keys to their bytecode
         X25519_pub = ed25519_pub_key.to_curve25519_public_key().encode()
         X25519_sec = ed25519_keypair.to_curve25519_private_key().encode()
-        
+
         # Add prefix to the public key
-        prependedX25519_pub = b'\x05'+ X25519_pub
+        prependedX25519_pub = b"\x05" + X25519_pub
 
         self._pub = prependedX25519_pub
         self._sec = X25519_sec
+
+    def _generate_v2_keys(self):
+        # TODO: implement V2
+        seed64 = bytes.fromhex(self._seed32 + self._seed32[:64])
+
+    def _generate_keys(self):
+        if self.version == 3:
+            self._generate_v3_keys()
+        elif self.version == 2:
+            raise Exception("V2 is not yet implemented")
+        else:
+            raise Exception('Unknown key version')
 
     def _extract_checksum(self):
 
