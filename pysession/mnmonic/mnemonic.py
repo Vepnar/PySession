@@ -52,17 +52,24 @@ class KeyPair:
     def get_mnemonic(self):
         return " ".join(self.words)
 
+    def get_public_key(self):
+        return self._pub.hex()
+
     def _generate_v3_keys(self):
-        seed64 = bytes.fromhex((self._seed32 + "0" * 32 + self._seed32)[:64])
+        
+        # Extract the seed from the 32hex seed string
+        seed64 = bytes.fromhex(('0' * 32 + self._seed32)[:64])
 
-        raw = (self._seed32 + "0" * 32 + self._seed32)[:64]
-
+        # Create the public & private key
         ed25519_keypair = nacl.signing.SigningKey(seed64)
         ed25519_pub_key = ed25519_keypair.verify_key
 
-        X25519_pub = ed25519_pub_key.to_curve25519_public_key()
-        X25519_sec = ed25519_keypair.to_curve25519_private_key()
-        prependedX25519_pub = chr(33) + X25519_pub
+        # Convert keys to their bytecode
+        X25519_pub = ed25519_pub_key.to_curve25519_public_key().encode()
+        X25519_sec = ed25519_keypair.to_curve25519_private_key().encode()
+        
+        # Add prefix to the public key
+        prependedX25519_pub = b'\x05'+ X25519_pub
 
         self._pub = prependedX25519_pub
         self._sec = X25519_sec
