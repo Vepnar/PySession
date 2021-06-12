@@ -3,6 +3,8 @@ import zlib
 import json
 import math
 import nacl.signing
+import nacl.public
+from nacl import encoding
 
 SEEDSIZE = 16
 
@@ -57,12 +59,11 @@ class KeyPair:
         return self._pub.hex()
 
     def _generate_v3_keys(self):
-
         # Extract the seed from the 32hex seed string
-        seed64 = bytes.fromhex((self._seed32 + self._seed32)[:64])
-
+        seed64 = (self._seed32 +'0' * 32+ self._seed32)[:64]
+        
         # Create the public & private key
-        ed25519_keypair = nacl.signing.SigningKey(seed64)
+        ed25519_keypair = nacl.signing.SigningKey(seed64, encoder=encoding.HexEncoder)
         ed25519_pub_key = ed25519_keypair.verify_key
 
         # Convert keys to their bytecode
@@ -76,14 +77,26 @@ class KeyPair:
         self._sec = X25519_sec
 
     def _generate_v2_keys(self):
-        # TODO: implement V2
-        seed64 = bytes.fromhex((self._seed32 + self._seed32)[:64])
+        # Double the trouble
+        seed64 = (self._seed32 + self._seed32)[:64]
+        
+        # Create a curve from the seed
+        curve25519_keypair = nacl.public.PrivateKey(seed64, encoding.HexEncoder)
+        
+        curve25519_pub = curve25519_keypair.public_key.encode()
+        curve25519_sec = curve25519_keypair.encode()
+
+        # Add prefix to the public KeyboardInterrupt
+        prepended_curve25519_pub = b'\x05' + curve25519_pub
+        
+        self._pub = prepended_curve25519_pub
+        self._sec = curve25519_sec
 
     def _generate_keys(self):
         if self.version == 3:
             self._generate_v3_keys()
         elif self.version == 2:
-            raise Exception("V2 is not yet implemented")
+            self._generate_v2_keys()
         else:
             raise Exception('Unknown key version')
 
