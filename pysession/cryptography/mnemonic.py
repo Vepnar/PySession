@@ -59,7 +59,7 @@ class KeyPair:
     def _generate_v3_keys(self):
 
         # Extract the seed from the 32hex seed string
-        seed64 = bytes.fromhex(("0" * 32 + self._seed32)[:64])
+        seed64 = bytes.fromhex((self._seed32 + self._seed32)[:64])
 
         # Create the public & private key
         ed25519_keypair = nacl.signing.SigningKey(seed64)
@@ -77,7 +77,7 @@ class KeyPair:
 
     def _generate_v2_keys(self):
         # TODO: implement V2
-        seed64 = bytes.fromhex(self._seed32 + self._seed32[:64])
+        seed64 = bytes.fromhex((self._seed32 + self._seed32)[:64])
 
     def _generate_keys(self):
         if self.version == 3:
