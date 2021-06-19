@@ -60,8 +60,8 @@ class KeyPair:
 
     def _generate_v3_keys(self):
         # Extract the seed from the 32hex seed string
-        seed64 = (self._seed32 +'0' * 32+ self._seed32)[:64]
-        
+        seed64 = (self._seed32 + "0" * 32 + self._seed32)[:64]
+
         # Create the public & private key
         ed25519_keypair = nacl.signing.SigningKey(seed64, encoder=encoding.HexEncoder)
         ed25519_pub_key = ed25519_keypair.verify_key
@@ -79,26 +79,26 @@ class KeyPair:
     def _generate_v2_keys(self):
         # Double the trouble
         seed64 = (self._seed32 + self._seed32)[:64]
-        
+
         # Create a curve from the seed
         curve25519_keypair = nacl.public.PrivateKey(seed64, encoding.HexEncoder)
-        
+
         curve25519_pub = curve25519_keypair.public_key.encode()
         curve25519_sec = curve25519_keypair.encode()
 
         # Add prefix to the public KeyboardInterrupt
-        prepended_curve25519_pub = b'\x05' + curve25519_pub
-        
+        prepended_curve25519_pub = b"\x05" + curve25519_pub
+
         self._pub = prepended_curve25519_pub
         self._sec = curve25519_sec
 
     def _generate_keys(self):
         if self.version == 3:
-            self._generate_v3_keys()
+            self._generate_v2_keys()
         elif self.version == 2:
             self._generate_v2_keys()
         else:
-            raise Exception('Unknown key version')
+            raise Exception("Unknown key version")
 
     def _extract_checksum(self):
 
@@ -191,7 +191,6 @@ class KeyPair:
         elif (self.prefix_length == 0 and word_count % self.prefix_length != 0) or (
             self.prefix_length > 0 and word_count % self.prefix_length > 1
         ):
-            print(word_count % self.prefix_length, word_count)
             raise MnemonicError("Mnemonic seed is too short")
         elif self.prefix_length > 0 and word_count % self.prefix_length == 0:
             raise MnemonicError("Last word in Menmonic seed is missing")
@@ -209,10 +208,21 @@ class KeyPair:
 
     @classmethod
     def from_file(cls, path: str = "mnemonic.json", **kwargs):
-        pass
+        with open(path, "r") as settings:
+            configuration = json.load(settings)
+
+            language = configuration.get("language", "english")
+            version = configuration.get("version", 3)
+            words = configuration["words"].split(" ")
+
+            pair = KeyPair(language=language, version=version, **kwargs)
+            pair.load_words(words)
+
+            return pair
 
     @classmethod
     def from_env(cls, prefix: str = "", **kwargs):
+        # TODO Implement loading configuration from enviroment variables
         pass
 
     @classmethod
