@@ -23,10 +23,10 @@ async def request_json(url: str, **kwargs: dict) -> dict:
         return response.json()
 
 async def request_buffer(url: str, **kwargs: dict) -> aiohttp.StreamReader:
-    async with make_request(url, **kwargs) as response:
+    async with _make_request(url, **kwargs) as response:
             return await response.content
 
-async def request_jsonrpc(url: str, method : dict, params: dict, options: dict = {}):
+async def request_jsonrpc(url: str, method : dict, params: dict, ignore_self_signed: bool = False):
     if not url:
         raise Exception("No url given")
 
