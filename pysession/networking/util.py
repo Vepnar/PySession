@@ -1,34 +1,40 @@
 import aiohttp
 
-# TODO: untested codebase
+# TODO: lightly tested
+# TODO: prevent recreating of session objects
 
 
-async def _make_request(url: str, **kwargs: dict) -> aiohttp.ClientResponse:
-    """Creates an ASYNC session and posts the given url
-
-    Note: Close the session after using.
-    """
+async def request_text(url: str, **kwargs: dict) -> str:
     # Inject timeout of 30 seconds
     if "timeout" not in kwargs:
         kwargs["timeout"] = 30
 
     async with aiohttp.ClientSession() as session:
-        return session.post(url, **kwargs)
-
-
-async def request_text(url: str, **kwargs: dict) -> str:
-    async with _make_request(url, **kwargs) as response:
-        return response.text()
+        async with session.post(url, **kwargs) as response:
+            assert response.status == 200
+            return await response.text()
 
 
 async def request_json(url: str, **kwargs: dict) -> dict:
-    async with _make_request(url, **kwargs) as response:
-        return response.json()
+    # Inject timeout of 30 seconds
+    if "timeout" not in kwargs:
+        kwargs["timeout"] = 30
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, **kwargs) as response:
+            assert response.status == 200
+            return await response.json()
 
 
-async def request_buffer(url: str, **kwargs: dict) -> aiohttp.StreamReader:
-    async with _make_request(url, **kwargs) as response:
-        return await response.content
+async def request_text(url: str, **kwargs: dict) -> aiohttp.StreamReader:
+    # Inject timeout of 30 seconds
+    if "timeout" not in kwargs:
+        kwargs["timeout"] = 30
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, **kwargs) as response:
+            assert response.status == 200
+            return response.content
 
 
 async def request_jsonrpc(
