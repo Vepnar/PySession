@@ -1,4 +1,5 @@
 import os
+from sys import version
 import zlib
 import json
 import math
@@ -222,8 +223,19 @@ class KeyPair:
 
     @classmethod
     def from_env(cls, prefix: str = "", **kwargs):
-        # TODO Implement loading configuration from enviroment variables
-        pass
+        # TODO: untested
+        words = os.environ.get(f"{prefix}WORDS", "")
+        version = int(os.environ.get(f"{prefix}VERSION", "3"))
+        language = os.environ.get(f"{prefix}LANGUAGE", "english")
+
+        if not words or " " in words:
+            raise MnemonicError(f"No valid words found in `{prefix}WORDS`")
+
+        words = words.split(" ")
+        pair = KeyPair(language=language, version=version, **kwargs)
+        pair.load_words(words)
+
+        return pair
 
     @classmethod
     def new_keys(cls, **kwargs):
