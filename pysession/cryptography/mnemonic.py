@@ -98,7 +98,7 @@ class KeyPair:
         elif self.version == 2:
             self._generate_v2_keys()
         else:
-            raise Exception("Unknown key version")
+            raise MnemonicError("Unknown seed version")
 
     def _extract_checksum(self):
 
@@ -227,7 +227,7 @@ class KeyPair:
         version = int(os.environ.get(f"{prefix}VERSION", "3"))
         language = os.environ.get(f"{prefix}LANGUAGE", "english")
 
-        if not words or " " in words:
+        if not words or " " not in words:
             raise MnemonicError(f"No valid words found in `{prefix}WORDS`")
 
         words = words.split(" ")
@@ -239,6 +239,12 @@ class KeyPair:
     @classmethod
     def new_keys(cls, **kwargs):
         pair = KeyPair(**kwargs)
+
+        # Hacky way to generate a keypair
         pair._seed32 = os.urandom(SEEDSIZE).hex()
-        pair._encode_mnemonic()
+        pair._encode_mnemonic()  # Create words from the hexstring
+
+        # Generate keys from the hex string
+        pair._generate_keys()
+
         return pair
