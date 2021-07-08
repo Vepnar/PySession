@@ -1,9 +1,0 @@
-[flake8]
-exclude = 
-    .git
-    __pycache__
-    tests/
-ignore=
-    E501
-    E203
-    W503
