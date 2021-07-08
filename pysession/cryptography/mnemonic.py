@@ -94,7 +94,7 @@ class KeyPair:
 
     def _generate_keys(self):
         if self.version == 3:
-            self._generate_v2_keys()
+            self._generate_v3_keys()
         elif self.version == 2:
             self._generate_v2_keys()
         else:
