@@ -1,12 +1,14 @@
-import os
-import zlib
 import json
 import math
-import nacl.signing
+import os
+import zlib
+
 import nacl.public
+import nacl.signing
 from nacl import encoding
 
 SEEDSIZE = 16
+
 
 # Custom exceptions
 class MnemonicError(Exception):
@@ -135,6 +137,7 @@ class KeyPair:
                 * wordset_length
                 * ((wordset_length - word2 + word3) % wordset_length)
             )
+
             # This error will occour when you use abbey 13 times in your mnemonic
             if segment % wordset_length != word1:
                 raise MnemonicError(
