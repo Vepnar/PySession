@@ -1,5 +1,4 @@
 import os
-from sys import version
 import zlib
 import json
 import math
@@ -10,7 +9,7 @@ from nacl import encoding
 SEEDSIZE = 16
 
 # Custom exceptions
-class MnemonicError(FileNotFoundError):
+class MnemonicError(Exception):
     pass
 
 
