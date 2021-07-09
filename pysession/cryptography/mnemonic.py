@@ -210,7 +210,7 @@ class KeyPair:
         return pair
 
     @classmethod
-    def from_file(cls, path: str = "mnemonic.json", **kwargs):
+    def from_file(cls, path: str = "mnemonic.json"):
         with open(path, "r") as settings:
             configuration = json.load(settings)
 
@@ -218,14 +218,13 @@ class KeyPair:
             version = configuration.get("version", 3)
             words = configuration["words"].split(" ")
 
-            pair = KeyPair(language=language, version=version, **kwargs)
+            pair = KeyPair(language=language, version=version)
             pair.load_words(words)
 
             return pair
 
     @classmethod
-    def from_env(cls, prefix: str = "", **kwargs):
-        # TODO: untested
+    def from_env(cls, prefix: str = ""):
         words = os.environ.get(f"{prefix}WORDS", "")
         version = int(os.environ.get(f"{prefix}VERSION", "3"))
         language = os.environ.get(f"{prefix}LANGUAGE", "english")
@@ -233,9 +232,9 @@ class KeyPair:
         if not words or " " not in words:
             raise MnemonicError(f"No valid words found in `{prefix}WORDS`")
 
-        words = words.split(" ")
-        pair = KeyPair(language=language, version=version, **kwargs)
-        pair.load_words(words)
+        words_splitted = words.split(" ")
+        pair = KeyPair(language=language, version=version)
+        pair.load_words(words_splitted)
 
         return pair
 
