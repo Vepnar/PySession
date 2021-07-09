@@ -127,3 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Editor configuration
+.vscode
+.SpaceVim.d
+.project_alt.json
