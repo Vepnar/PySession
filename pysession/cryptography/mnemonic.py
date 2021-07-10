@@ -1,15 +1,17 @@
-import os
-import zlib
 import json
 import math
-import nacl.signing
+import os
+import zlib
+
 import nacl.public
+import nacl.signing
 from nacl import encoding
 
 SEEDSIZE = 16
 
+
 # Custom exceptions
-class MnemonicError(FileNotFoundError):
+class MnemonicError(Exception):
     pass
 
 
@@ -94,11 +96,11 @@ class KeyPair:
 
     def _generate_keys(self):
         if self.version == 3:
-            self._generate_v2_keys()
+            self._generate_v3_keys()
         elif self.version == 2:
             self._generate_v2_keys()
         else:
-            raise Exception("Unknown key version")
+            raise MnemonicError("Unknown seed version")
 
     def _extract_checksum(self):
 
@@ -135,6 +137,7 @@ class KeyPair:
                 * wordset_length
                 * ((wordset_length - word2 + word3) % wordset_length)
             )
+
             # This error will occour when you use abbey 13 times in your mnemonic
             if segment % wordset_length != word1:
                 raise MnemonicError(
@@ -207,7 +210,7 @@ class KeyPair:
         return pair
 
     @classmethod
-    def from_file(cls, path: str = "mnemonic.json", **kwargs):
+    def from_file(cls, path: str = "mnemonic.json"):
         with open(path, "r") as settings:
             configuration = json.load(settings)
 
@@ -215,19 +218,35 @@ class KeyPair:
             version = configuration.get("version", 3)
             words = configuration["words"].split(" ")
 
-            pair = KeyPair(language=language, version=version, **kwargs)
+            pair = KeyPair(language=language, version=version)
             pair.load_words(words)
 
             return pair
 
     @classmethod
-    def from_env(cls, prefix: str = "", **kwargs):
-        # TODO Implement loading configuration from enviroment variables
-        pass
+    def from_env(cls, prefix: str = ""):
+        words = os.environ.get(f"{prefix}WORDS", "")
+        version = int(os.environ.get(f"{prefix}VERSION", "3"))
+        language = os.environ.get(f"{prefix}LANGUAGE", "english")
+
+        if not words or " " not in words:
+            raise MnemonicError(f"No valid words found in `{prefix}WORDS`")
+
+        words_splitted = words.split(" ")
+        pair = KeyPair(language=language, version=version)
+        pair.load_words(words_splitted)
+
+        return pair
 
     @classmethod
     def new_keys(cls, **kwargs):
         pair = KeyPair(**kwargs)
+
+        # Hacky way to generate a keypair
         pair._seed32 = os.urandom(SEEDSIZE).hex()
-        pair._encode_mnemonic()
+        pair._encode_mnemonic()  # Create words from the hexstring
+
+        # Generate keys from the hex string
+        pair._generate_keys()
+
         return pair
