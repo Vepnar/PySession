@@ -1,8 +1,8 @@
-import os
-import json
-import time
-import random
 import asyncio
+import json
+import os
+import random
+import time
 
 from .util import request_jsonrpc
 
@@ -43,7 +43,7 @@ class Swarm:
         response = await request_jsonrpc(seed["url"], "get_n_service_nodes", params)
 
         storage_nodes = filter(
-            lambda x: x['public_ip'] != "0.0.0.0",
+            lambda x: x["public_ip"] != "0.0.0.0",
             response["result"]["service_node_states"],
         )
         storage_nodes = map(
@@ -67,7 +67,7 @@ class Swarm:
         }
 
         response = await request_jsonrpc(
-            node_url, "oxend_request", params, options={"snode": True}
+            node_url, "oxend_request", params, ignore_self_signed=True
         )
         storage_nodes = filter(
             lambda node: node.public_ip != "0.0.0.0",
