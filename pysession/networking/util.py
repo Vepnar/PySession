@@ -57,6 +57,8 @@ async def request_jsonrpc(
 
     body = {"jsonrpc": "2.0", "id": "0", "method": method, "params": params}
     headers = {"Content-Type": "application/json"}
+
+    # TODO: test what happens when ssl=true.
     return await request_json(
-        url, json=body, headers=headers, verify=not ignore_self_signed
+        url, json=body, headers=headers, ssl=not ignore_self_signed
     )
