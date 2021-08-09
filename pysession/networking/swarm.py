@@ -20,6 +20,7 @@ class Swarm:
         self.swarm_url_lock = asyncio.Lock()
         self.swarm_map = {}
         self.storage_server_seed_cache = {}
+        self.last_x_messages = []
 
         # Load seed for the swarm
         current = os.path.dirname(os.path.abspath(__file__))
@@ -141,5 +142,14 @@ class Swarm:
                         params,
                     )
 
-            # TODO: Implement message retrieving
+            # TODO: Prevent spamming.
+            if method == "retrieve":
+                new_messages = []
+                for message in result.messages:
+                    if message.expiration not in self.last_x_messages:
+                        self.last_x_messages.append(message.expiration)
+                        new_messages.append(message)
+                    else:  # TODO: Verbose log found duplicate
+                        pass
+                result["new_messages"] = new_messages
             return result
